@@ -151,3 +151,16 @@ http://localhost:8080/swagger-ui.html
 ```
 
 ---
+
+
+## 📸 Screenshots
+
+### 🟢 Application Running
+![Application Running](app_running_ss.png)
+
+### 🟡 Swagger UI — API Endpoints
+![Swagger UI Screenshot](app_swagger_ss.png)
+
+### 🔵 Swagger UI — API Output Example
+![Swagger API Output](app_swagger_api_output.png)
+
