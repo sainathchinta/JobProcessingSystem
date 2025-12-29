@@ -1,118 +1,153 @@
-# Job Processing System
+# 🚀 Job Processing System
 
-A **High-Performance Task Queue & Job Processing System** built with **Spring Boot, Kafka, Redis, and PostgreSQL**.  
-
-This system handles **long-running tasks** like report generation, email sending, or data export **asynchronously**, ensuring your application remains responsive and scalable.
+A high-performance, distributed background job processing system for handling long-running tasks asynchronously.
 
 ---
 
-## Features
+## 🏗 Architecture (Conceptual)
 
-- Accepts **job requests asynchronously**  
-- Queues jobs for **efficient processing**  
-- Handles **retries and failures**  
-- Provides **fast status lookups** via caching  
-- Persists **job metadata in PostgreSQL**  
-- Supports a **Dead Letter Queue** for permanently failed jobs  
-- Demonstrates **microservices patterns, async processing, and production-grade architecture**
-
----
-
-## 🏛 Architecture
-
-```text
-      +----------------+
-      |     Client     |
-      | (Postman/GUI)  |
-      +-------+--------+
-              |
-              v
-     +-------------------+
-     |   Job API Service |
-     |   (Spring Boot)   |
-     +--------+----------+
-              |
-              v
-       Kafka Topic: job-queue
-              |
-              v
-     +-------------------+
-     |   Worker Service  |
-     |   (Spring Boot)   |
-     +--------+----------+
-              |
- +------------+------------+
- |                         |
- v                         v
-+------------+ +-------------+
-| PostgreSQL | | Redis       |
-| Job Table  | | Job Status  |
-+------------+ +-------------+
-              |
-              v
-   Dead Letter Queue (Kafka Topic)
-
-
-
-## **🔄 Job Status Lifecycle**
-
-The system tracks jobs through a robust state machine:
-
-* **QUEUED** → **IN_PROGRESS** → **COMPLETED**
-* **IN_PROGRESS** → **FAILED** → **RETRYING** → **DEAD_LETTER**
-
-> **Note:** Failed jobs are retried up to **3 times**. If all retries fail, the job is moved to the **Dead Letter Queue (DLQ)**.
+```
+API Service  →  Kafka Queue  →  Worker Service  →  PostgreSQL
+                                   ↓
+                                 Redis
+                                   ↓
+                         Dead Letter Queue (Kafka)
+```
 
 ---
 
-## **💾 Database Schema**
+## 📡 API Endpoints
 
-### **Table: jobs**
+### 1️⃣ Submit Job
 
-| Column | Type | Description |
-| :--- | :--- | :--- |
-| job_id | UUID | Primary key |
-| job_type | String | Type of task (e.g., REPORT_GENERATION) |
-| payload_json | Text | Original input payload |
-| status | Enum | Current stage (QUEUED, FAILED, etc.) |
-| retries | Int | Number of retry attempts |
-| result_json | Text | Final job output |
-| error_message | String | Error if job failed |
-| created_at | Timestamp | Job creation time |
-| updated_at | Timestamp | Last update time |
+**Endpoint:** `POST /api/jobs`
+
+**Request Example:**
+
+```json
+{
+  "jobType": "REPORT_GENERATION",
+  "payload": {
+    "userId": 42,
+    "dateRange": "last_30_days"
+  }
+}
+```
+
+**Response Example:**
+
+```json
+{
+  "jobId": "a12f-93kd-88sa",
+  "status": "QUEUED"
+}
+```
 
 ---
 
-## **🛠 Tech Stack**
+### 2️⃣ Get Job Status
 
-* **Backend:** Spring Boot, Java 21
-* **Messaging:** Kafka
-* **Database:** PostgreSQL
-* **Cache:** Redis
-* **Build Tool:** Maven
-* **Documentation:** Swagger / OpenAPI
+**Endpoint:** `GET /api/jobs/{jobId}`
+
+**In-Progress Response:**
+
+```json
+{
+  "jobId": "a12f-93kd-88sa",
+  "status": "IN_PROGRESS",
+  "retries": 1,
+  "result": null
+}
+```
+
+**Completed Response:**
+
+```json
+{
+  "jobId": "a12f-93kd-88sa",
+  "status": "COMPLETED",
+  "retries": 1,
+  "result": {
+    "fileUrl": "/reports/report_42.pdf"
+  }
+}
+```
+
+**Failed Response:**
+
+```json
+{
+  "jobId": "a12f-93kd-88sa",
+  "status": "FAILED",
+  "retries": 3,
+  "errorMessage": "PDF export service timeout"
+}
+```
 
 ---
 
-## **⚙️ Setup & Run**
+## 🔄 Job Status Lifecycle
 
-### **Prerequisites**
+```
+QUEUED → IN_PROGRESS → COMPLETED
+          ↓
+        FAILED → RETRYING → DEAD_LETTER
+```
 
-Make sure **Redis** and **Kafka** are running in the background.
+> Jobs retry up to **3 times** before moving to the **Dead Letter Queue (DLQ)**.
 
-### **Instructions**
+---
+
+## 💾 Database Schema (Jobs Table)
+
+| Column          | Type      | Description |
+|-----------------|----------|-------------|
+| job_id          | UUID     | Primary key |
+| job_type        | String   | Type of task |
+| payload_json    | Text     | Input payload |
+| status          | Enum     | Job state |
+| retries         | Int      | Retry count |
+| result_json     | Text     | Output data |
+| error_message   | String   | Failure reason |
+| created_at      | Timestamp| Created time |
+| updated_at      | Timestamp| Updated time |
+
+---
+
+## 🛠 Tech Stack
+
+- Spring Boot (Java 21)  
+- Apache Kafka  
+- PostgreSQL  
+- Redis  
+- Maven  
+- Swagger / OpenAPI  
+
+---
+
+## ⚙️ Setup & Run
 
 ```bash
-# 1. Clone the repository
-git clone [https://github.com/username/JobProcessingSystem.git](https://github.com/username/JobProcessingSystem.git)
+# Clone repository
+git clone https://github.com/username/JobProcessingSystem.git
 cd JobProcessingSystem
 
-# 2. Build the project
+# Make sure Kafka And Redis are already running in the background
+
+# Build project
 ./mvnw clean install
 
-# 3. Run the Spring Boot application
+# Run service
 ./mvnw spring-boot:run
-📖 API Documentation
-Once the app is running, you can access the Swagger UI at:
 
-👉 http://localhost:8080/swagger-ui.html
+```
+
+---
+
+## 📖 API Documentation
+
+```
+http://localhost:8080/swagger-ui.html
+```
+
+---
